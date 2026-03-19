@@ -3,117 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NoBe Note</title>
+    <title>URL Note — Rich Editor</title>
     <style>
+        :root { --accent: #007bff; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #222;
-            max-width: 700px;
+            font-family: -apple-system, system-ui, sans-serif;
+            max-width: 750px;
             margin: 0 auto;
-            padding: 50px 20px;
-            background-color: #fff;
+            padding: 60px 20px;
+            color: #333;
         }
-        [contenteditable]:focus {
-            outline: none;
-        }
+        [contenteditable]:focus { outline: none; }
         #title {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            display: block;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
             border: none;
-            width: 100%;
         }
         #content {
-            font-size: 19px;
-            min-height: 300px;
-            white-space: pre-wrap;
+            font-size: 20px;
+            min-height: 400px;
+            line-height: 1.6;
         }
-        #title[placeholder]:empty:before,
-        #content[placeholder]:empty:before {
-            content: attr(placeholder);
+        #title:empty::before, #content:empty::before {
+            content: attr(data-placeholder);
             color: #ccc;
-            cursor: text;
         }
-        .controls {
+        .toolbar {
+            position: absolute;
+            background: #222;
+            border-radius: 5px;
+            padding: 5px;
+            display: none;
+            gap: 5px;
+            z-index: 100;
+        }
+        .toolbar button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        .toolbar button:hover { background: #444; }
+
+        .save-btn {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
-        }
-        button {
             background: #000;
             color: #fff;
             border: none;
             padding: 10px 20px;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
-            transition: opacity 0.2s;
-        }
-        button:hover {
-            opacity: 0.8;
         }
         .toast {
             position: fixed;
-            bottom: 70px;
+            top: 70px;
             right: 20px;
             background: #333;
             color: #fff;
             padding: 8px 15px;
             border-radius: 5px;
-            font-size: 12px;
             display: none;
         }
+        a { color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <div id="title" contenteditable="true" placeholder="Title"></div>
-    <div id="content" contenteditable="true" placeholder="Type something here..."></div>
-
-    <div class="controls">
-        <button onclick="saveToUrl()">Save to URL</button>
+    <div class="toolbar" id="toolbar">
+        <button onclick="format('bold')">B</button>
+        <button onclick="format('italic')">I</button>
+        <button onclick="format('underline')">U</button>
+        <button onclick="format('insertUnorderedList')">List</button>
+        <button onclick="createLink()">Link</button>
     </div>
 
+    <div id="title" contenteditable="true" data-placeholder="Title"></div>
+    <div id="content" contenteditable="true" data-placeholder="Type something here..."></div>
+
+    <button class="save-btn" onclick="saveToUrl()">Save to URL</button>
     <div id="toast" class="toast">Link has been copied to clipboard</div>
 
     <script>
         const titleEl = document.getElementById('title');
         const contentEl = document.getElementById('content');
-        const toast = document.getElementById('toast');
+        const toolbar = document.getElementById('toolbar');
+
+        function format(command) {
+            document.execCommand(command, false, null);
+        }
+
+        function createLink() {
+            const url = prompt("Enter URL:", "https://");
+            if (url) document.execCommand('createLink', false, url);
+        }
+
+        document.addEventListener('selectionchange', () => {
+            const selection = window.getSelection();
+            if (selection.toString().length > 0 && !selection.isCollapsed) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                toolbar.style.display = 'flex';
+                toolbar.style.top = `${rect.top + window.scrollY - 45}px`;
+                toolbar.style.left = `${rect.left + window.scrollX}px`;
+            } else {
+                toolbar.style.display = 'none';
+            }
+        });
+
+        function saveToUrl() {
+            const data = {
+                t: titleEl.innerHTML,
+                c: contentEl.innerHTML
+            };
+            const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+            window.location.hash = base64;
+
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                const toast = document.getElementById('toast');
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 2000);
+            });
+        }
 
         function loadFromUrl() {
             const hash = window.location.hash.substring(1);
             if (hash) {
                 try {
-                    const decodedData = JSON.parse(decodeURIComponent(escape(atob(hash))));
-                    titleEl.innerText = decodedData.t || '';
-                    contentEl.innerText = decodedData.c || '';
+                    const decoded = JSON.parse(decodeURIComponent(escape(atob(hash))));
+                    titleEl.innerHTML = decoded.t || '';
+                    contentEl.innerHTML = decoded.c || '';
                 } catch (e) {
                     console.error("Unable to decode =(", e);
                 }
             }
-        }
-
-        function saveToUrl() {
-            const data = {
-                t: titleEl.innerText,
-                c: contentEl.innerText
-            };
-
-            const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-
-            window.location.hash = base64;
-
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                showToast();
-            });
-        }
-
-        function showToast() {
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2500);
         }
 
         window.addEventListener('load', loadFromUrl);
