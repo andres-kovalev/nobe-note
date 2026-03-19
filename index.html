@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoBe Note</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #222;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 50px 20px;
+            background-color: #fff;
+        }
+        [contenteditable]:focus {
+            outline: none;
+        }
+        #title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+            border: none;
+            width: 100%;
+        }
+        #content {
+            font-size: 19px;
+            min-height: 300px;
+            white-space: pre-wrap;
+        }
+        #title[placeholder]:empty:before,
+        #content[placeholder]:empty:before {
+            content: attr(placeholder);
+            color: #ccc;
+            cursor: text;
+        }
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+        button {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .toast {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            background: #333;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="title" contenteditable="true" placeholder="Title"></div>
+    <div id="content" contenteditable="true" placeholder="Type something here..."></div>
+
+    <div class="controls">
+        <button onclick="saveToUrl()">Save to URL</button>
+    </div>
+
+    <div id="toast" class="toast">Link has been copied to clipboard</div>
+
+    <script>
+        const titleEl = document.getElementById('title');
+        const contentEl = document.getElementById('content');
+        const toast = document.getElementById('toast');
+
+        function loadFromUrl() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                try {
+                    const decodedData = JSON.parse(decodeURIComponent(escape(atob(hash))));
+                    titleEl.innerText = decodedData.t || '';
+                    contentEl.innerText = decodedData.c || '';
+                } catch (e) {
+                    console.error("Unable to decode =(", e);
+                }
+            }
+        }
+
+        function saveToUrl() {
+            const data = {
+                t: titleEl.innerText,
+                c: contentEl.innerText
+            };
+
+            const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+
+            window.location.hash = base64;
+
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast();
+            });
+        }
+
+        function showToast() {
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+
+        window.addEventListener('load', loadFromUrl);
+    </script>
+</body>
+</html>
