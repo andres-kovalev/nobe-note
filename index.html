@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL Note — Rich Editor</title>
+    <title>NoBe Note</title>
     <style>
         :root { --accent: #007bff; }
         body {
@@ -18,7 +18,6 @@
             font-size: 42px;
             font-weight: 700;
             margin-bottom: 20px;
-            border: none;
         }
         #content {
             font-size: 20px;
@@ -37,18 +36,24 @@
             display: none;
             gap: 5px;
             z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .toolbar button {
             background: none;
             border: none;
             color: white;
-            padding: 5px 10px;
+            padding: 0;
             cursor: pointer;
             font-weight: bold;
             border-radius: 3px;
+            min-width: 34px;
+            min-height: 34px;
         }
         .toolbar button:hover { background: #444; }
-
+        .toolbar button .icon {
+            padding-top: 3px;
+        }
+        .highlight { background-color: yellow; }
         .save-btn {
             position: fixed;
             top: 20px;
@@ -69,18 +74,39 @@
             padding: 8px 15px;
             border-radius: 5px;
             display: none;
+            font-size: 14px;
         }
-        a { color: var(--accent); }
+        .ycircle {
+            display: inline-block;
+            border: 1px solid black;
+            background: yellow;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
 
     <div class="toolbar" id="toolbar">
-        <button onclick="format('bold')">B</button>
-        <button onclick="format('italic')">I</button>
-        <button onclick="format('underline')">U</button>
-        <button onclick="format('insertUnorderedList')">List</button>
-        <button onclick="createLink()">Link</button>
+        <button onclick="format('bold')"><b>B</b></button>
+        <button onclick="format('italic')"><i>I</i></button>
+        <button onclick="format('underline')"><u>U</u></button>
+        <button onclick="format('insertUnorderedList')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                <line x1="4" y1="6" x2="4.01" y2="6"></line>
+                <line x1="4" y1="12" x2="4.01" y2="12"></line>
+                <line x1="4" y1="18" x2="4.01" y2="18"></line>
+                <line x1="9" y1="6" x2="20" y2="6"></line>
+                <line x1="9" y1="12" x2="20" y2="12"></line>
+                <line x1="9" y1="18" x2="20" y2="18"></line>
+            </svg>
+        </button>
+        <button onclick="createLink()">&#x1F517;</button>
+        <button onclick="toggleHighlight()" title="Маркер">
+            <div class="ycircle"></div>
+        </button>
     </div>
 
     <div id="title" contenteditable="true" data-placeholder="Title"></div>
@@ -101,6 +127,21 @@
         function createLink() {
             const url = prompt("Enter URL:", "https://");
             if (url) document.execCommand('createLink', false, url);
+        }
+
+        function toggleHighlight() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+            const parent = selection.anchorNode.parentElement;
+
+            if (parent && parent.style.backgroundColor === 'yellow') {
+                const text = document.createTextNode(parent.textContent);
+                parent.replaceWith(text);
+            } else {
+                document.execCommand('backColor', false, 'yellow');
+            }
         }
 
         document.addEventListener('selectionchange', () => {
@@ -139,7 +180,7 @@
                     titleEl.innerHTML = decoded.t || '';
                     contentEl.innerHTML = decoded.c || '';
                 } catch (e) {
-                    console.error("Unable to decode =(", e);
+                    console.error("Unable to load data =(", e);
                 }
             }
         }
